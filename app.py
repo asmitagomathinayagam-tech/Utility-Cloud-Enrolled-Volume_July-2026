@@ -55,12 +55,25 @@ PLOTLY_TEMPLATE = go.layout.Template(
     layout=go.Layout(
         paper_bgcolor=CARD_BG,
         plot_bgcolor=CARD_BG,
-        font=dict(color=TEXT, family='Segoe UI, sans-serif', size=16),
-        xaxis=dict(gridcolor=BORDER, zerolinecolor=BORDER),
-        yaxis=dict(gridcolor=BORDER, zerolinecolor=BORDER),
-        legend=dict(font=dict(color=TEXT)),
+        font=dict(color=TEXT, family='Segoe UI, sans-serif', size=18),
+        xaxis=dict(
+            gridcolor=BORDER,
+            zerolinecolor=BORDER,
+            tickfont=dict(color=TEXT, size=18, family='Segoe UI, sans-serif', weight="bold"),
+            title_font=dict(color=TEXT, size=18, family='Segoe UI, sans-serif', weight="bold"),
+        ),
+        yaxis=dict(
+            gridcolor=BORDER,
+            zerolinecolor=BORDER,
+            tickfont=dict(color=TEXT, size=18, family='Segoe UI, sans-serif', weight="bold"),
+            title_font=dict(color=TEXT, size=18, family='Segoe UI, sans-serif', weight="bold"),
+        ),
+        legend=dict(font=dict(color=TEXT, size=16, family='Segoe UI, sans-serif', weight="bold")),
     )
 )
+
+# Shared, bold, high-contrast style for data-label text sitting on top of bars/pies
+DATA_LABEL_FONT = dict(color=TEXT, size=20, family='Segoe UI, sans-serif', weight="bold")
 
 st.markdown(
     f"""
@@ -188,7 +201,13 @@ with left:
         pie_df.columns = ["organization_name", "subscribed"]
         fig = px.pie(pie_df, names="organization_name", values="subscribed",
                      color_discrete_sequence=TOP10_SEQUENCE, hole=0.35)
-        fig.update_traces(sort=False)  # keep "Others" last, not re-sorted by value
+        fig.update_traces(
+            sort=False,  # keep "Others" last, not re-sorted by value
+            textfont=DATA_LABEL_FONT,
+            textinfo="percent",
+            insidetextfont=dict(color="#0F1220", size=18, family='Segoe UI, sans-serif', weight="bold"),
+            outsidetextfont=DATA_LABEL_FONT,
+        )
         fig.update_layout(template=PLOTLY_TEMPLATE, margin=dict(t=10, b=10))
         st.plotly_chart(fig, use_container_width=True)
     else:
@@ -204,8 +223,9 @@ with right:
         bar_colors = CTYPE_SEQUENCE[: len(ctype)]
         fig = go.Figure(go.Bar(x=ctype["Direct/ Indirect"], y=ctype["Volume"],
                                 marker_color=bar_colors,
-                                text=ctype["Volume"].map(lambda v: f"{v:,}"), textposition="outside"))
-        fig.update_layout(template=PLOTLY_TEMPLATE, showlegend=False, margin=dict(t=10, b=10))
+                                text=ctype["Volume"].map(lambda v: f"{v:,}"), textposition="outside",
+                                textfont=DATA_LABEL_FONT))
+        fig.update_layout(template=PLOTLY_TEMPLATE, showlegend=False, margin=dict(t=10, b=40))
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Upload a report to populate this chart.")
@@ -227,8 +247,9 @@ values = [t[1] for t in trend]
 bar_colors = [ACCENT_2] + [ACCENT_1] * (len(values) - 1) if current_volume is not None else [ACCENT_1] * len(values)
 
 fig = go.Figure(go.Bar(x=labels, y=values, marker_color=bar_colors,
-                        text=[f"{v:,}" for v in values], textposition="outside"))
+                        text=[f"{v:,}" for v in values], textposition="outside",
+                        textfont=DATA_LABEL_FONT))
 fig.update_layout(template=PLOTLY_TEMPLATE, yaxis_title=None, xaxis_title=None,
-                   showlegend=False, margin=dict(t=10, b=10))
+                   showlegend=False, margin=dict(t=40, b=10))
 st.plotly_chart(fig, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
