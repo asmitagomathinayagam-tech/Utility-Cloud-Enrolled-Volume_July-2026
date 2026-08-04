@@ -37,19 +37,19 @@ BORDER = "#2E3555"
 TEXT = "#E7E9F5"
 SUBTEXT = "#9AA3C7"
 
-# KPI cards — each metric gets its own accent color
-KPI_ACCENTS = ["#7C6CF0", "#33C9C0"]   # Live Customer Accounts, Live Customer Volume
+# KPI cards — each metric gets its own subtle accent color
+KPI_ACCENTS = ["#8B85C4", "#5FA8A0"]   # muted violet, muted teal
 
-# Top 10 Customer Volume (pie) — warm sunset palette
-TOP10_SEQUENCE = ["#F0577E", "#F0885B", "#F0A857", "#F2C14E", "#E8618C",
-                   "#D9457C", "#F27F63", "#F5A16B", "#F6C177", "#FADD8D"]
+# Top 10 Customer Volume (pie) — subtle muted sunset palette
+TOP10_SEQUENCE = ["#C97B8E", "#C99B76", "#C9A85B", "#D0C084", "#B87A8A",
+                   "#B06C82", "#C48E77", "#CBA37E", "#D3BE8F", "#DFD2A3"]
 
-# Customer Type (bar) — cool ocean-blue palette
-CTYPE_SEQUENCE = ["#3A86FF", "#4CC9F0", "#4895EF", "#5B8DEF", "#00B4D8"]
+# Customer Type (bar) — subtle muted ocean-blue palette
+CTYPE_SEQUENCE = ["#6C90C4", "#6FB3C0", "#7599C9", "#7E92C2", "#5FA0AC"]
 
-# Monthly Volume Trend — keep the original violet/teal pairing
-ACCENT_1 = "#7C6CF0"   # violet
-ACCENT_2 = "#33C9C0"   # teal-cyan
+# Monthly Volume Trend — muted violet/teal pairing
+ACCENT_1 = "#8B85C4"   # muted violet
+ACCENT_2 = "#5FA8A0"   # muted teal
 
 PLOTLY_TEMPLATE = go.layout.Template(
     layout=go.Layout(
@@ -103,14 +103,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Prior months carried over from the existing dashboard.
+# Prior months carried over from the existing dashboard, newest first (descending).
 BASE_TREND = [
-    ("Jan'26", 567225),
-    ("Feb'26", 623391),
-    ("Mar'26", 625548),
-    ("Apr'26", 646921),
-    ("May'26", 809347),
     ("Jun'26", 883075),
+    ("May'26", 809347),
+    ("Apr'26", 646921),
+    ("Mar'26", 625548),
+    ("Feb'26", 623391),
+    ("Jan'26", 567225),
 ]
 
 
@@ -165,6 +165,7 @@ with col1:
     kpi_card("Live Customer Accounts", val, KPI_ACCENTS[0])
 
 with col2:
+    # unique/distinct customers only — nunique() dedupes organization_name
     val = f"{live_df['organization_name'].nunique():,}" if live_df is not None else "—"
     kpi_card("Live Customer Volume", val, KPI_ACCENTS[1])
 
@@ -185,6 +186,7 @@ with left:
         pie_df.columns = ["organization_name", "subscribed"]
         fig = px.pie(pie_df, names="organization_name", values="subscribed",
                      color_discrete_sequence=TOP10_SEQUENCE, hole=0.35)
+        fig.update_traces(sort=False)  # keep "Others" last, not re-sorted by value
         fig.update_layout(template=PLOTLY_TEMPLATE, margin=dict(t=10, b=10))
         st.plotly_chart(fig, use_container_width=True)
     else:
@@ -216,11 +218,11 @@ st.markdown('<div class="panel-title">Monthly Volume Trend</div>', unsafe_allow_
 
 trend = list(BASE_TREND)
 if current_volume is not None:
-    trend.append((report_label, current_volume))
+    trend.insert(0, (report_label, current_volume))  # newest month goes first (descending order)
 
 labels = [t[0] for t in trend]
 values = [t[1] for t in trend]
-bar_colors = [ACCENT_1] * (len(values) - 1) + [ACCENT_2] if current_volume is not None else [ACCENT_1] * len(values)
+bar_colors = [ACCENT_2] + [ACCENT_1] * (len(values) - 1) if current_volume is not None else [ACCENT_1] * len(values)
 
 fig = go.Figure(go.Bar(x=labels, y=values, marker_color=bar_colors,
                         text=[f"{v:,}" for v in values], textposition="outside"))
