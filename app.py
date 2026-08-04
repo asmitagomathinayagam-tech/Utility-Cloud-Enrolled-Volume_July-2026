@@ -165,8 +165,8 @@ with col1:
     kpi_card("Live Customer Accounts", val, KPI_ACCENTS[0])
 
 with col2:
-    # unique/distinct customers only — nunique() dedupes organization_name
-    val = f"{live_df['organization_name'].nunique():,}" if live_df is not None else "—"
+    # unique/distinct customers with subscribed != 0, then dedupe organization_name
+    val = f"{live_df[live_df['subscribed'] != 0]['organization_name'].nunique():,}" if live_df is not None else "—"
     kpi_card("Live Customer Volume", val, KPI_ACCENTS[1])
 
 # ---------------------------------------------------------------------------
