@@ -78,8 +78,8 @@ st.markdown(
             background-color: {CARD_BG};
             border: 1px solid {BORDER};
             border-radius: 14px;
-            padding: 18px 20px 8px 20px;
-            margin-bottom: 18px;
+            padding: 12px 16px 8px 16px;
+            margin-bottom: 10px;
         }}
         .panel-title {{
             color: {SUBTEXT};
@@ -89,7 +89,7 @@ st.markdown(
             margin-bottom: 10px;
         }}
         .kpi-value {{
-            font-size: 2.4rem;
+            font-size: 2rem;
             font-weight: 700;
             color: {TEXT};
         }}
@@ -152,7 +152,12 @@ if uploaded is not None:
     live_df = filter_live(raw)
     current_volume = int(live_df["subscribed"].sum())
 
-st.title("Customer Volume Dashboard")
+st.markdown("""
+<style>
+.block-container{padding-top:0.8rem;padding-bottom:0.5rem;padding-left:2rem;padding-right:2rem;}
+</style>
+""", unsafe_allow_html=True)
+st.markdown("<h2 style='margin-bottom:10px;'>Customer Volume Dashboard</h2>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # KPIs (Live Providers Volume + Account Status intentionally omitted)
@@ -187,7 +192,7 @@ with left:
         fig = px.pie(pie_df, names="organization_name", values="subscribed",
                      color_discrete_sequence=TOP10_SEQUENCE, hole=0.35)
         fig.update_traces(sort=False)  # keep "Others" last, not re-sorted by value
-        fig.update_layout(template=PLOTLY_TEMPLATE, margin=dict(t=10, b=10))
+        fig.update_layout(template=PLOTLY_TEMPLATE, margin=dict(t=10,b=10,l=10,r=10), height=340)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Upload a report to populate this chart.")
@@ -203,7 +208,7 @@ with right:
         fig = go.Figure(go.Bar(x=ctype["Direct/ Indirect"], y=ctype["Volume"],
                                 marker_color=bar_colors,
                                 text=ctype["Volume"].map(lambda v: f"{v:,}"), textposition="outside"))
-        fig.update_layout(template=PLOTLY_TEMPLATE, showlegend=False, margin=dict(t=10, b=10))
+        fig.update_layout(template=PLOTLY_TEMPLATE, showlegend=False, margin=dict(t=10,b=10,l=10,r=10), height=340)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Upload a report to populate this chart.")
@@ -226,7 +231,6 @@ bar_colors = [ACCENT_2] + [ACCENT_1] * (len(values) - 1) if current_volume is no
 
 fig = go.Figure(go.Bar(x=labels, y=values, marker_color=bar_colors,
                         text=[f"{v:,}" for v in values], textposition="outside"))
-fig.update_layout(template=PLOTLY_TEMPLATE, yaxis_title=None, xaxis_title=None,
-                   showlegend=False, margin=dict(t=10, b=10))
+fig.update_layout(template=PLOTLY_TEMPLATE, yaxis_title=None, xaxis_title=None, showlegend=False, margin=dict(t=10,b=10,l=10,r=10), height=360)
 st.plotly_chart(fig, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
