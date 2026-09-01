@@ -11,10 +11,11 @@ Monthly Volume definition (confirmed with data owner):
     live_or_test == "Live" (i.e. total enrolled volume as of that
     report date).
 
-Upload the monthly AccountRpt_*.xlsx export (Pivot_Customer_Volume tab)
-to populate everything. Prior months (Jan'26-Jun'26) are baked in below
-since they came from the original dashboard; Jul'26+ is computed live
-from whatever file is uploaded.
+Upload the monthly AccountRpt_*.xlsx export to populate everything:
+  - Pivot_Customer_Volume tab -> KPI cards, Top 10 pie, Customer Type bar
+  - Monthly Trends tab (columns: "Month", "Total Accounts") -> the
+    Monthly Volume Trend bar chart, in full (replaces the old hardcoded
+    BASE_TREND list + manual "Label for this month's bar" input).
 
 New in this version: dark, indigo/violet themed layout (replacing the
 original light teal Power BI look).
@@ -123,20 +124,19 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Prior months carried over from the existing dashboard, newest first (descending).
-BASE_TREND = [
-    ("Jun'26", 883075),
-    ("May'26", 809347),
-    ("Apr'26", 646921),
-    ("Mar'26", 625548),
-    ("Feb'26", 623391),
-    ("Jan'26", 567225),
-]
-
-
 @st.cache_data(show_spinner=False)
 def read_pivot_sheet(file) -> pd.DataFrame:
     return pd.read_excel(file, sheet_name="Pivot_Customer_Volume")
+
+
+# CHANGED (per user request, Sep '26): Monthly Volume Trend now comes entirely
+# from a "Monthly Trends" tab in the uploaded workbook instead of the old
+# hardcoded BASE_TREND list + manual sidebar label. The tab has two columns,
+# "Month" and "Total Accounts", and already contains every month to display
+# (no more splicing a live-computed "current" bar onto a baked-in history).
+@st.cache_data(show_spinner=False)
+def read_trend_sheet(file) -> pd.DataFrame:
+    return pd.read_excel(file, sheet_name="Monthly Trends")
 
 
 def filter_live(df: pd.DataFrame) -> pd.DataFrame:
@@ -162,15 +162,16 @@ def kpi_card(title: str, value: str, accent: str):
 
 st.sidebar.header("Load monthly report")
 uploaded = st.sidebar.file_uploader("Upload AccountRpt_*.xlsx", type=["xlsx"])
-report_label = st.sidebar.text_input("Label for this month's bar", value="Jul'26")
+# REMOVED (per user request): manual "Label for this month's bar" text_input —
+# labels for the trend chart now come from the Monthly Trends tab's "Month" column.
 
 live_df = None
-current_volume = None
+trend_df = None  # ADDED: holds the Monthly Trends tab once a file is uploaded
 
 if uploaded is not None:
     raw = read_pivot_sheet(uploaded)
     live_df = filter_live(raw)
-    current_volume = int(live_df["subscribed"].sum())
+    trend_df = read_trend_sheet(uploaded)
 
 st.title("Customer Volume Dashboard")
 
@@ -256,21 +257,25 @@ with right:
 st.markdown('<div class="panel">', unsafe_allow_html=True)
 st.markdown('<div class="panel-title">Monthly Volume Trend</div>', unsafe_allow_html=True)
 
-trend = list(BASE_TREND)
-if current_volume is not None:
-    trend.insert(0, (report_label, current_volume))  # newest month goes first (descending order)
+if trend_df is not None:
+    # CHANGED (per user request): pull labels + values straight from the
+    # Monthly Trends tab instead of BASE_TREND/report_label. Row order is
+    # taken as-is from the sheet (assumed newest-first, matching the old
+    # display order) — reorder the tab itself if you want a different order.
+    labels = trend_df["Month"].tolist()
+    values = trend_df["Total Accounts"].tolist()
+    # Keep highlighting the first bar (newest month) same as before; the rest use ACCENT_1.
+    bar_colors = [ACCENT_2] + [ACCENT_1] * (len(values) - 1) if len(values) > 1 else [ACCENT_2] * len(values)
 
-labels = [t[0] for t in trend]
-values = [t[1] for t in trend]
-bar_colors = [ACCENT_2] + [ACCENT_1] * (len(values) - 1) if current_volume is not None else [ACCENT_1] * len(values)
-
-fig = go.Figure(go.Bar(x=labels, y=values, marker_color=bar_colors,
-                        text=[f"<b>{v:,}</b>" for v in values], textposition="outside",
-                        texttemplate="%{text}",
-                        textfont=DATA_LABEL_FONT,
-                        cliponaxis=False))
-fig.update_layout(template=PLOTLY_TEMPLATE, yaxis_title=None, xaxis_title=None,
-                   showlegend=False, margin=dict(t=60, b=10),
-                   uniformtext_minsize=14, uniformtext_mode="hide")
-st.plotly_chart(fig, use_container_width=True)
+    fig = go.Figure(go.Bar(x=labels, y=values, marker_color=bar_colors,
+                            text=[f"<b>{v:,}</b>" for v in values], textposition="outside",
+                            texttemplate="%{text}",
+                            textfont=DATA_LABEL_FONT,
+                            cliponaxis=False))
+    fig.update_layout(template=PLOTLY_TEMPLATE, yaxis_title=None, xaxis_title=None,
+                       showlegend=False, margin=dict(t=60, b=10),
+                       uniformtext_minsize=14, uniformtext_mode="hide")
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("Upload a report to populate this chart.")
 st.markdown('</div>', unsafe_allow_html=True)
